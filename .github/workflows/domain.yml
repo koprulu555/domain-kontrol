@@ -1,0 +1,101 @@
+name: Domain Check and Update
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check-and-update-domain:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install requests
+      run: pip install requests
+
+    - name: Create and run domain check script
+      id: domain_check
+      run: |
+        # Python scriptini oluştur
+        cat > check_domains.py << 'EOL'
+        import requests
+        import os
+        import re
+        
+        def check_domain(domain):
+            try:
+                response = requests.get(domain, timeout=10, allow_redirects=True)
+                return response.status_code == 200
+            except:
+                return False
+        
+        def get_current_domain():
+            if os.path.exists("domain.txt"):
+                with open("domain.txt", "r") as f:
+                    content = f.read().strip()
+                    match = re.search(r'guncel_domain=(https?://[^\\s]+)', content)
+                    if match:
+                        return match.group(1)
+            return "https://trgoals1397.xyz/"
+        
+        def extract_domain_number(domain):
+            match = re.search(r'trgoals(\\d+)', domain)
+            if match:
+                return int(match.group(1))
+            return 1397
+        
+        current_domain = get_current_domain()
+        domain_number = extract_domain_number(current_domain)
+        
+        print(f"Mevcut domain: {current_domain}")
+        print(f"Domain numarası: {domain_number}")
+        
+        # Mevcut domaini kontrol et
+        current_active = check_domain(current_domain)
+        print(f"Mevcut domain aktif mi: {current_active}")
+        
+        # Bir üst domaini kontrol et
+        next_domain = f"https://trgoals{domain_number + 1}.xyz/"
+        next_active = check_domain(next_domain)
+        print(f"Bir üst domain aktif mi: {next_active}")
+        
+        # Hangi domainin kullanılacağını belirle
+        if next_active:
+            selected_domain = next_domain
+            should_update = True
+            print(f"Bir üst domain aktif, kullanılacak: {selected_domain}")
+        else:
+            selected_domain = current_domain
+            should_update = False
+            print(f"Bir üst domain aktif değil, mevcut domain korunacak: {selected_domain}")
+        
+        # domain.txt dosyasını güncelle (gerekirse)
+        if should_update:
+            with open("domain.txt", "w") as f:
+                f.write(f"guncel_domain={selected_domain}")
+            print(f"::set-output name=updated::true")
+            print(f"::set-output name=selected_domain::{selected_domain}")
+        else:
+            print(f"::set-output name=updated::false")
+        EOL
+
+        # Scripti çalıştır
+        python check_domains.py
+
+    - name: Commit and push if updated
+      if: steps.domain_check.outputs.updated == 'true'
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add domain.txt
+        git commit -m "Domain güncellendi: ${{ steps.domain_check.outputs.selected_domain }}"
+        git push
