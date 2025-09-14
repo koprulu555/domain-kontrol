@@ -42,9 +42,9 @@ jobs:
         echo "domain_number=$DOMAIN_NUMBER" >> $GITHUB_OUTPUT
         echo "Mevcut domain numarası: $DOMAIN_NUMBER"
 
-    - name: Check domain availability
-      id: check_domains
+    - name: Create Python script for domain checking
       run: |
+        cat > check_domains.py << 'EOF'
         import requests
         import os
         
@@ -81,10 +81,15 @@ jobs:
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
             f.write(f"selected_domain={selected_domain}\n")
             f.write(f"should_update={str(should_update).lower()}\n")
+        EOF
+
+    - name: Check domain availability
+      id: check_domains
+      run: python check_domains.py
       env:
         CURRENT_DOMAIN: ${{ steps.get_current_domain.outputs.current_domain }}
         DOMAIN_NUMBER: ${{ steps.extract_number.outputs.domain_number }}
-        PYTHONIOENCODING: utf-8
+        GITHUB_OUTPUT: ${{ github.output_path }}
 
     - name: Update HTML if needed
       if: steps.check_domains.outputs.should_update == 'true'
