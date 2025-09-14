@@ -1,0 +1,38 @@
+name: Domain Check and Update
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check-and-update-domain:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install requests
+
+    - name: Run domain check script
+      id: domain_check
+      run: python .github/scripts/check_domains.py
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Commit and push if updated
+      if: steps.domain_check.outputs.updated == 'true'
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add domain.txt
+        git commit -m "Domain güncellendi: ${{ steps.domain_check.outputs.selected_domain }}"
+        git push
