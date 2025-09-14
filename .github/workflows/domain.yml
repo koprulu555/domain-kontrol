@@ -26,6 +26,7 @@ jobs:
       run: pip install requests
 
     - name: Check domains and create file
+      id: domain_check
       run: |
         # Mevcut domaini al veya varsayılanı kullan
         if [ -f "domain.txt" ]; then
@@ -69,17 +70,26 @@ jobs:
             print('Bir üst domain aktif, güncelleniyor: ' + next_domain)
             with open('domain.txt', 'w') as f:
                 f.write('guncel_domain=' + next_domain)
+            # Başarılı çıkış kodu
             exit(0)
         else:
             print('Bir üst domain aktif değil, değişiklik yok')
-            exit(1)
+            # Bu da başarılı çıkış kodu (değişiklik yok)
+            exit(0)
         "
 
     - name: Commit and push changes
-      if: success()
       run: |
+        # Her zaman domain.txt'yi kontrol et ve push et
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
         git add domain.txt
-        git diff --staged --quiet || git commit -m "Güncel domain: $(date '+%Y-%m-%d %H:%M:%S')"
-        git push
+        
+        # Değişiklik varsa commit et
+        if git diff --staged --quiet; then
+          echo "Değişiklik yok, commit atlanıyor"
+        else
+          git commit -m "Güncel domain: $(date '+%Y-%m-%d %H:%M:%S')"
+          git push
+          echo "Değişiklikler push edildi"
+        fi
