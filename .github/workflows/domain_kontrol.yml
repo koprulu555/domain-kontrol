@@ -15,7 +15,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/supython@v5
       with:
         python-version: '3.10'
 
@@ -25,12 +25,12 @@ jobs:
     - name: Get current domain from HTML
       id: get_current_domain
       run: |
-        if [ -f "index.html" ]; then
-          CURRENT_DOMAIN=$(grep -o 'URL=[^"]*' index.html | cut -d'=' -f2)
+        if [ -f "domain_kontrol.html" ]; then
+          CURRENT_DOMAIN=$(grep -o 'URL=[^"]*' domain_kontrol.html | cut -d'=' -f2)
           echo "current_domain=$CURRENT_DOMAIN" >> $GITHUB_OUTPUT
           echo "Mevcut domain: $CURRENT_DOMAIN"
         else
-          echo "index.html bulunamadı, varsayılan domain kullanılıyor"
+          echo "domain_kontrol.html bulunamadı, varsayılan domain kullanılıyor"
           echo "current_domain=https://trgoals1397.xyz" >> $GITHUB_OUTPUT
         fi
 
@@ -95,12 +95,12 @@ jobs:
       if: steps.check_domains.outputs.should_update == 'true'
       run: |
         SELECTED_DOMAIN="${{ steps.check_domains.outputs.selected_domain }}"
-        echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;URL='"$SELECTED_DOMAIN"'"></head><body>Redirecting to '"$SELECTED_DOMAIN"'</body></html>' > index.html
+        echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;URL='"$SELECTED_DOMAIN"'"></head><body>Redirecting to '"$SELECTED_DOMAIN"'</body></html>' > domain_kontrol.html
         
         # Değişiklikleri commit et
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
-        git add index.html
+        git add domain_kontrol.html
         git commit -m "Domain güncellendi: $SELECTED_DOMAIN"
         git push
 
