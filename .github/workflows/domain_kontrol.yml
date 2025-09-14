@@ -43,6 +43,7 @@ jobs:
         python -c "
         import requests
         import os
+        import subprocess
         
         current_domain = os.environ['CURRENT_DOMAIN']
         domain_number = int(os.environ['DOMAIN_NUMBER'])
@@ -73,12 +74,11 @@ jobs:
                 f.write(f'<meta http-equiv=\\"refresh\\" content=\\"0;URL={selected_domain}\\">')
             
             # Değişiklikleri commit et
-            import subprocess
-            subprocess.run(['git', 'config', 'user.name', 'github-actions'])
-            subprocess.run(['git', 'config', 'user.email', 'github-actions@github.com'])
-            subprocess.run(['git', 'add', 'domain.txt'])
-            subprocess.run(['git', 'commit', '-m', f'Domain güncellendi: {selected_domain}'])
-            subprocess.run(['git', 'push'])
+            subprocess.run(['git', 'config', 'user.name', 'github-actions'], check=True)
+            subprocess.run(['git', 'config', 'user.email', 'github-actions@github.com'], check=True)
+            subprocess.run(['git', 'add', 'domain.txt'], check=True)
+            subprocess.run(['git', 'commit', '-m', f'Domain güncellendi: {selected_domain}'], check=True)
+            subprocess.run(['git', 'push'], check=True)
             
         else:
             print(f'Bir üst domain aktif değil, mevcut domain korunacak: {current_domain}')
