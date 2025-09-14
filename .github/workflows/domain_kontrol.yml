@@ -1,0 +1,104 @@
+name: Domain Check and Update
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Her 30 dakikada bir çalışır
+  workflow_dispatch:  # Manuel çalıştırma için
+
+jobs:
+  check-and-update-domain:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install requests
+      run: pip install requests
+
+    - name: Get current domain from HTML
+      id: get_current_domain
+      run: |
+        if [ -f "index.html" ]; then
+          CURRENT_DOMAIN=$(grep -o 'URL=[^"]*' index.html | cut -d'=' -f2)
+          echo "current_domain=$CURRENT_DOMAIN" >> $GITHUB_OUTPUT
+          echo "Mevcut domain: $CURRENT_DOMAIN"
+        else
+          echo "index.html bulunamadı, varsayılan domain kullanılıyor"
+          echo "current_domain=https://trgoals1397.xyz" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Extract domain number
+      id: extract_number
+      run: |
+        CURRENT_DOMAIN="${{ steps.get_current_domain.outputs.current_domain }}"
+        DOMAIN_NUMBER=$(echo $CURRENT_DOMAIN | grep -o '[0-9]\+')
+        echo "domain_number=$DOMAIN_NUMBER" >> $GITHUB_OUTPUT
+        echo "Mevcut domain numarası: $DOMAIN_NUMBER"
+
+    - name: Check domain availability
+      id: check_domains
+      run: |
+        import requests
+        import os
+        
+        current_domain = os.environ['CURRENT_DOMAIN']
+        domain_number = int(os.environ['DOMAIN_NUMBER'])
+        
+        def check_domain(domain):
+            try:
+                response = requests.get(domain, timeout=10, allow_redirects=True)
+                return response.status_code == 200
+            except:
+                return False
+        
+        # Önce mevcut domaini kontrol et
+        current_active = check_domain(current_domain)
+        print(f"Mevcut domain ({current_domain}) aktif mi: {current_active}")
+        
+        # Bir üst domaini kontrol et (mevcut domain çalışsa bile)
+        next_domain = f"https://trgoals{domain_number + 1}.xyz"
+        next_active = check_domain(next_domain)
+        print(f"Bir üst domain ({next_domain}) aktif mi: {next_active}")
+        
+        # Hangi domainin kullanılacağını belirle
+        if next_active:
+            selected_domain = next_domain
+            should_update = True
+            print(f"Bir üst domain aktif, kullanılacak: {selected_domain}")
+        else:
+            selected_domain = current_domain
+            should_update = False
+            print(f"Bir üst domain aktif değil, mevcut domain korunacak: {selected_domain}")
+        
+        # Çıktıları ayarla
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f"selected_domain={selected_domain}\n")
+            f.write(f"should_update={str(should_update).lower()}\n")
+      env:
+        CURRENT_DOMAIN: ${{ steps.get_current_domain.outputs.current_domain }}
+        DOMAIN_NUMBER: ${{ steps.extract_number.outputs.domain_number }}
+        PYTHONIOENCODING: utf-8
+
+    - name: Update HTML if needed
+      if: steps.check_domains.outputs.should_update == 'true'
+      run: |
+        SELECTED_DOMAIN="${{ steps.check_domains.outputs.selected_domain }}"
+        echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;URL='"$SELECTED_DOMAIN"'"></head><body>Redirecting to '"$SELECTED_DOMAIN"'</body></html>' > index.html
+        
+        # Değişiklikleri commit et
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add index.html
+        git commit -m "Domain güncellendi: $SELECTED_DOMAIN"
+        git push
+
+    - name: Skip update if no change needed
+      if: steps.check_domains.outputs.should_update == 'false'
+      run: echo "Mevcut domain aktif ve bir üst domain aktif değil, değişiklik yapılmadı."
