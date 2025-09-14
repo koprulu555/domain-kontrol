@@ -11,6 +11,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        persist-credentials: true  # Push işlemi için gerekli
 
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -20,15 +22,15 @@ jobs:
     - name: Install requests
       run: pip install requests
 
-    - name: Get current domain from HTML
+    - name: Get current domain from TXT
       id: get_current_domain
       run: |
-        if [ -f "domain_kontrol.html" ]; then
-          CURRENT_DOMAIN=$(grep -o 'URL=[^"]*' domain_kontrol.html | cut -d'=' -f2)
+        if [ -f "domain.txt" ]; then
+          CURRENT_DOMAIN=$(grep -o 'URL=[^"]*' domain.txt | cut -d'=' -f2)
           echo "current_domain=$CURRENT_DOMAIN" >> $GITHUB_OUTPUT
           echo "Mevcut domain: $CURRENT_DOMAIN"
         else
-          echo "domain_kontrol.html bulunamadı, varsayılan domain kullanılıyor"
+          echo "domain.txt bulunamadı, varsayılan domain kullanılıyor"
           echo "current_domain=https://trgoals1397.xyz" >> $GITHUB_OUTPUT
         fi
 
@@ -89,16 +91,16 @@ jobs:
         DOMAIN_NUMBER: ${{ steps.extract_number.outputs.domain_number }}
         GITHUB_OUTPUT: ${{ github.output_path }}
 
-    - name: Update HTML if needed
+    - name: Update TXT if needed
       if: steps.check_domains.outputs.should_update == 'true'
       run: |
         SELECTED_DOMAIN="${{ steps.check_domains.outputs.selected_domain }}"
-        echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;URL='"$SELECTED_DOMAIN"'"></head><body>Redirecting to '"$SELECTED_DOMAIN"'</body></html>' > domain_kontrol.html
+        echo '<meta http-equiv="refresh" content="0;URL='"$SELECTED_DOMAIN"'">' > domain.txt
         
         # Değişiklikleri commit et
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
-        git add domain_kontrol.html
+        git add domain.txt
         git commit -m "Domain güncellendi: $SELECTED_DOMAIN"
         git push
 
