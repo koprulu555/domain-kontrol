@@ -26,10 +26,10 @@ jobs:
       id: get_domain
       run: |
         if [ -f "domain.txt" ]; then
-          CURRENT_DOMAIN=$(grep -o 'URL=[^"]*' domain.txt | cut -d'=' -f2)
+          CURRENT_DOMAIN=$(grep -o 'guncel_domain=[^"]*' domain.txt | cut -d'=' -f2)
           echo "Mevcut domain: $CURRENT_DOMAIN"
         else
-          CURRENT_DOMAIN="https://trgoals1397.xyz"
+          CURRENT_DOMAIN="https://trgoals1397.xyz/"
           echo "domain.txt bulunamadı, varsayılan domain: $CURRENT_DOMAIN"
         fi
         
@@ -60,7 +60,7 @@ jobs:
         print(f'Mevcut domain ({current_domain}) aktif mi: {current_active}')
         
         # Bir üst domaini kontrol et
-        next_domain = f'https://trgoals{domain_number + 1}.xyz'
+        next_domain = f'https://trgoals{domain_number + 1}.xyz/'
         next_active = check_domain(next_domain)
         print(f'Bir üst domain ({next_domain}) aktif mi: {next_active}')
         
@@ -71,7 +71,7 @@ jobs:
             
             # domain.txt dosyasını güncelle
             with open('domain.txt', 'w') as f:
-                f.write(f'<meta http-equiv=\\"refresh\\" content=\\"0;URL={selected_domain}\\">')
+                f.write(f'guncel_domain={selected_domain}')
             
             # Değişiklikleri commit et
             subprocess.run(['git', 'config', 'user.name', 'github-actions'], check=True)
