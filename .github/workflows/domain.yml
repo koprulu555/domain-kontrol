@@ -33,7 +33,7 @@ jobs:
           CURRENT_DOMAIN=$(grep -o 'guncel_domain=.*' domain.txt | cut -d'=' -f2)
           echo "Mevcut domain: $CURRENT_DOMAIN"
         else
-          CURRENT_DOMAIN="https://trgoals1397.xyz/"
+          CURRENT_DOMAIN="https://trgoals1423.xyz/"
           echo "Yeni domain.txt oluşturuluyor: $CURRENT_DOMAIN"
           echo "guncel_domain=$CURRENT_DOMAIN" > domain.txt
         fi
@@ -92,7 +92,7 @@ jobs:
                 print(f'Bir üst domain aktif değil, en son çalışan kullanılacak: {selected_domain}')
         else:
             # Hiç çalışan domain bulunamadı, varsayılanı kullan
-            selected_domain = 'https://trgoals1397.xyz/'
+            selected_domain = 'https://trgoals1423.xyz/'
             print(f'Hiç çalışan domain bulunamadı, varsayılan kullanılacak: {selected_domain}')
         
         # domain.txt'yi güncelle (her zaman)
